@@ -654,23 +654,32 @@ function cerrarBot(bot) {
 
 // ==================== INICIAR BOT (USA CUENTA DEL YAML) ====================
 function iniciarBot(numero) {
-  const account = getNextAccount();
-  if (!account) {
-    console.error(`[Master] ❌ No hay más cuentas disponibles para el bot ${numero}`);
-    activeConnections--;
-    processQueue();
-    return;
-  }
-  
-  const bot = {
+    const account = getNextAccount(); // o getUniqueAccount()
+    if (!account) {
+        console.error(`[Master] ❌ No hay más cuentas disponibles`);
+        activeConnections--;
+        processQueue();
+        return;
+    }
+    
+    // Asegurar que clientId sea un BigInt válido y positivo
+    let clientId;
+    if (account.cid && typeof account.cid === 'bigint' && account.cid > 0n) {
+        clientId = account.cid;
+    } else {
+        // Generar CID aleatorio
+        clientId = BigInt('0x' + crypto.randomBytes(8).toString('hex'));
+        console.log(`[Master] ⚠️ Usando CID generado para ${account.username}: ${clientId}`);
+    }
+    
+    const bot = {
     id: numero,
     username: account.username,
     password: account.password,
-    cidValue: account.cid,
     uuid: randomUUID(),
     xuid: randomXUID(),
     phase: 'UNCONNECTED',
-    clientId: account.cid !== null ? BigInt(account.cid) : BigInt('0x' + crypto.randomBytes(8).toString('hex')),
+    clientId: clientId,  // ← Ahora siempre positivo
     mtuSize: MTU_LIST[0],
     sendSeq: 0, msgIndex: 0, orderIndex: 0, splitId: 0,
     ackQueue: [], splitMap: new Map(), sentFrames: new Map(),
